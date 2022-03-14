@@ -82,3 +82,48 @@ func (pd *pollDesc) WaitWrite(ctx context.Context) error {
 		}
 	}
 }
+
+func (pd *pollDesc) WaitWriteForConnect(ctx context.Context) error {
+	var err error
+	pd.once.Do(func() {
+		pd.writeTrigger = make(chan struct{})
+		pd.closeTrigger = make(chan struct{})
+		pd.operator.OnWrite = func(p Poll) error {
+			select {
+			case <-pd.writeTrigger:
+			default:
+				close(pd.writeTrigger)
+			}
+			return nil
+		}
+		pd.operator.OnHup = func(p Poll) error {
+			close(pd.closeTrigger)
+			return nil
+		}
+		// add ET|Write|Hup
+		pd.operator.poll = mainpoll
+		err = pd.operator.Control(PollWritable)
+		if err != nil {
+			pd.operator.Control(PollDetach)
+		}
+	})
+	if err != nil {
+		return err
+	}
+
+	select {
+	case <-ctx.Done():
+		pd.operator.Control(PollDetach)
+		return mapErr(ctx.Err())
+	case <-pd.closeTrigger:
+		return Exception(ErrConnClosed, "by peer")
+	case <-pd.writeTrigger:
+		// if writable, check hup by select
+		select {
+		case <-pd.closeTrigger:
+			return Exception(ErrConnClosed, "by peer")
+		default:
+			return nil
+		}
+	}
+}

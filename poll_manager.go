@@ -46,6 +46,10 @@ func defaultNumLoops() int {
 	if procs > 4 {
 		loops = procs
 	}
+	if loops > 8 {
+		loops--
+		fmt.Printf("loops %d\n", loops)
+	}
 	return loops
 }
 
