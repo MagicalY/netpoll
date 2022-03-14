@@ -13,6 +13,7 @@ package netpoll
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net"
 	"os"
 	"runtime"
@@ -183,7 +184,8 @@ func (c *netFD) connect(ctx context.Context, la, ra syscall.Sockaddr) (rsa sysca
 		// SO_ERROR socket option to see if the connection
 		// succeeded or failed. See issue 7474 for further
 		// details.
-		if err := c.pd.WaitWriteForConnect(ctx); err != nil {
+		if err := c.pd.WaitWrite(ctx); err != nil {
+			fmt.Printf("connect err %+v", err)
 			return nil, err
 		}
 		nerr, err := syscall.GetsockoptInt(c.fd, syscall.SOL_SOCKET, syscall.SO_ERROR)
