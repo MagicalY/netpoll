@@ -16,6 +16,7 @@ package netpoll
 
 import (
 	"context"
+	"fmt"
 	"sync"
 )
 
@@ -69,6 +70,7 @@ func (pd *pollDesc) WaitWrite(ctx context.Context) error {
 	select {
 	case <-ctx.Done():
 		pd.operator.Control(PollDetach)
+		fmt.Printf("waitwrite connect err\n")
 		return mapErr(ctx.Err())
 	case <-pd.closeTrigger:
 		return Exception(ErrConnClosed, "by peer")
@@ -114,6 +116,7 @@ func (pd *pollDesc) WaitWriteForConnect(ctx context.Context) error {
 	select {
 	case <-ctx.Done():
 		pd.operator.Control(PollDetach)
+		fmt.Printf("mywaitwrite connect err\n")
 		return mapErr(ctx.Err())
 	case <-pd.closeTrigger:
 		return Exception(ErrConnClosed, "by peer")

@@ -117,6 +117,7 @@ func (c *netFD) connect(ctx context.Context, la, ra syscall.Sockaddr) (rsa sysca
 	case nil, syscall.EISCONN:
 		select {
 		case <-ctx.Done():
+			fmt.Printf("entry connect err %+v\n", err)
 			return nil, mapErr(ctx.Err())
 		default:
 		}
@@ -157,7 +158,7 @@ func (c *netFD) connect(ctx context.Context, la, ra syscall.Sockaddr) (rsa sysca
 				// by making it unwritable, don't return a successful
 				// dial. This was issue 16523.
 				ret = mapErr(ctxErr)
-				fmt.Printf("defer connect err %+v", ret)
+				fmt.Printf("defer connect err %+v\n", ctxErr)
 				c.Close() // prevent a leak
 			}
 		}()
@@ -186,7 +187,7 @@ func (c *netFD) connect(ctx context.Context, la, ra syscall.Sockaddr) (rsa sysca
 		// succeeded or failed. See issue 7474 for further
 		// details.
 		if err := c.pd.WaitWriteForConnect(ctx); err != nil {
-			fmt.Printf("connect err %+v", err)
+			fmt.Printf("connect err %+v\n", err)
 			return nil, err
 		}
 		nerr, err := syscall.GetsockoptInt(c.fd, syscall.SOL_SOCKET, syscall.SO_ERROR)
@@ -202,7 +203,7 @@ func (c *netFD) connect(ctx context.Context, la, ra syscall.Sockaddr) (rsa sysca
 			// see issues 14548 and 19289. Check that we are
 			// really connected; if not, wait again.
 			if rsa, err := syscall.Getpeername(c.fd); err == nil {
-				fmt.Printf("connect success")
+				fmt.Printf("connect success\n")
 				c.pd.operator.Control(PollDetach)
 				c.pd.operator.poll = pollmanager.Pick()
 				err = c.pd.operator.Control(PollWritable)
