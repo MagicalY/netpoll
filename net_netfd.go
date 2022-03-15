@@ -157,6 +157,7 @@ func (c *netFD) connect(ctx context.Context, la, ra syscall.Sockaddr) (rsa sysca
 				// by making it unwritable, don't return a successful
 				// dial. This was issue 16523.
 				ret = mapErr(ctxErr)
+				fmt.Printf("defer connect err %+v", ret)
 				c.Close() // prevent a leak
 			}
 		}()
@@ -184,7 +185,7 @@ func (c *netFD) connect(ctx context.Context, la, ra syscall.Sockaddr) (rsa sysca
 		// SO_ERROR socket option to see if the connection
 		// succeeded or failed. See issue 7474 for further
 		// details.
-		if err := c.pd.WaitWrite(ctx); err != nil {
+		if err := c.pd.WaitWriteForConnect(ctx); err != nil {
 			fmt.Printf("connect err %+v", err)
 			return nil, err
 		}
@@ -201,6 +202,13 @@ func (c *netFD) connect(ctx context.Context, la, ra syscall.Sockaddr) (rsa sysca
 			// see issues 14548 and 19289. Check that we are
 			// really connected; if not, wait again.
 			if rsa, err := syscall.Getpeername(c.fd); err == nil {
+				fmt.Printf("connect success")
+				c.pd.operator.Control(PollDetach)
+				c.pd.operator.poll = pollmanager.Pick()
+				err = c.pd.operator.Control(PollWritable)
+				if err != nil {
+					c.pd.operator.Control(PollDetach)
+				}
 				return rsa, nil
 			}
 		default:

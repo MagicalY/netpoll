@@ -123,12 +123,6 @@ func (pd *pollDesc) WaitWriteForConnect(ctx context.Context) error {
 		case <-pd.closeTrigger:
 			return Exception(ErrConnClosed, "by peer")
 		default:
-			pd.operator.Control(PollDetach)
-			pd.operator.poll = pollmanager.Pick()
-			err = pd.operator.Control(PollWritable)
-			if err != nil {
-				pd.operator.Control(PollDetach)
-			}
 			return nil
 		}
 	}
